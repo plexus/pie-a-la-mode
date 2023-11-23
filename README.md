@@ -18,11 +18,20 @@ to demonstrate some of the issues with concurrency.
 > one—the bank, the store, or you—is going to be very unhappy.
 
 This turns into a running example, talking about various ways of approaching
-this. Further down they add "pie à la mode" to the menu
+this. Further down they add "pie à la mode" to the menu. I thought it would be
+interesting to look at different ways to solve this in Clojure, so I shared this
+exercise, and a bunch of people sent in their solution.
+
+Toot asking for submissions: https://toot.cat/@plexus/111447816873237415
 
 - pie-a-la-mode-orig
 
 The original exercise, containing a race condition.
+
+- pie-a-la-mode-locking
+
+Most basic way to fix this, wrap the read+write code into a `locking` macro, but
+loses some amount of concurrency.
 
 - pie-a-la-mode-epidiah-stm
 - pie-a-la-mode-johnny-stm
