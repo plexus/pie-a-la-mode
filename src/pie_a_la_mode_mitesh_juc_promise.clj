@@ -55,8 +55,6 @@
     :not-available))
 
 (def pending-orders (java.util.concurrent.LinkedBlockingDeque. 1000))
-(def table-waiter (volatile! {}))
-
 (def terminate (volatile! false))
 
 (defonce head-chef
@@ -64,64 +62,13 @@
    (fn []
      (while (not @terminate)
        (let [order (.take pending-orders)]
-         (println "Took order: " order)
+         ;; Took order
          (let [{:keys [table order result]} order
                status (handle-order! order)]
-           ;; (println "Served: " table)
-           (deliver result {:table table :status status})
-           ;; (println "Added: " table)
-           ))))))
+           ;; Served
+           (deliver result {:table table :status status})))))))
 
-
-(comment
-  (.start head-chef)
-  (.interrupt head-chef)
-  (vswap! table-waiter assoc 1 (java.util.concurrent.LinkedBlockingQueue. 2))
-  @table-waiter
-  (get @table-waiter 4)
-  (sort (keys @table-waiter))
-  (.put pending-orders {:table 1 :order {:pie 2}})
-  (println (.peek pending-orders))
-
-  )
-
-#_(defn prepare-order!
-    "Takes the needed ingredients out of the inventory, then verifies that inventory
-  doesn't go below zero. Either returns :ok, or throws."
-    [order]
-    (loop [try 0]
-      (println "Try: " try)
-      (let [pie-left @pieces-of-pie-left
-            scoops-left @scoops-of-ice-cream-left
-            stock (reduce (fn [stock [item qty]]
-                            (update stock item - qty))
-                          {:pie pie-left :scoop scoops-left}
-                          (order->ingredients order))]
-        (cond
-          (< (:pie stock) 0)
-          (recur (inc try))
-          (< (:scoop stock) 0)
-          (recur (inc try))
-          :else
-          (do
-            (let [pie (compare-and-set! pieces-of-pie-left pie-left (:pie stock))]
-              (if pie
-                (let [scoops (compare-and-set! scoops-of-ice-cream-left scoops-left (:scoop stock))]
-                  :ok)
-                (do
-
-                  :not-available)
-                ))
-            :ok)))))
-
-#_(defn handle-order!
-    "Check if we have enough ingredients for the order, if so we prepare it"
-    [order]
-    (locking pieces-of-pie-left
-      (locking scoops-of-ice-cream-left
-        (if (enough-inventory? (order->ingredients order))
-          (prepare-order! order)
-          :not-available))))
+(.start head-chef)
 
 ;; The actual "simulation", handle 100 orders, but do them in futures so they
 ;; get handled on separate threads. Deref the futures after they have all been
@@ -134,7 +81,7 @@
    (doall
     (for [table (range 100)]
       (do
-        (println "Placing an order: " table)
+        ;; Placing an order
         (future
           (let [order (random-order)
                 result (promise)
@@ -142,9 +89,11 @@
                                         :table table
                                         :result result})
                 result @result]
-            (println "Result")
             ;; Semafore while printing, to prevent the output from being mangled
             (locking *out*
               (println "[" table "]" order "--->" result)))))))))
 
-;; (prepare-order! {:ice-cream 10000})
+(comment
+  (.interrupt head-chef)
+  (.put pending-orders {:table 1 :order {:pie 2}})
+  (println (.peek pending-orders)))
